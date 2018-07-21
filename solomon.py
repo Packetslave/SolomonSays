@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
+import random
 import sys
 
 import twitter
 import xmltodict
+
+sys.path.append(".")
+import twitter_config as config
 
 doc = None
 with open('proverbs.xml') as fd:
@@ -25,13 +29,16 @@ BLACKLIST = frozenset([
     "1:5",  # intro to the book
 ])
 
-#sys.path.append(".")
-#import twitter_config as config
-#new_status = "testing testing"
-#twitter = Twitter(auth = OAuth(config.access_key,
-#                               config.access_secret,
-#                               config.consumer_key,
-#                               config.consumer_secret))
-#
-#results = twitter.statuses.update(status = new_status)
-#print("updated status: %s" % new_status)
+chapter_idx = random.randint(1, len(chapters))
+verse_idx = random.randint(1, len(root[chapter_idx-1]['v']))
+verse = root[chapter_idx - 1]['v'][verse_idx - 1]['#text']
+
+new_status = "%s (Proverbs %s:%s NIV)" % (verse, chapter_idx, verse_idx)
+
+twitter = twitter.Twitter(auth = twitter.OAuth(config.access_key,
+                                               config.access_secret,
+                                               config.consumer_key,
+                                               config.consumer_secret))
+
+results = twitter.statuses.update(status = new_status)
+print("updated status: %s" % new_status)
