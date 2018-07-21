@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import calendar
+import datetime
 import random
 import sys
 import time
@@ -27,7 +28,7 @@ BLACKLIST_SECS = 60 * 60 * 24 * 60
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(config.dynamodb_table)
 
-now = int(calendar.timegm(time.gmtime()))
+now = int(time.time())
 
 # Read the blacklist of verses we've posted recently
 
@@ -35,9 +36,9 @@ response = table.scan(
     FilterExpression=Attr('last_updated').gt(now - BLACKLIST_SECS)
 )
 for i in response['Items']:
-    print "Adding %s to blacklist (posted %.1f days ago)" % (
+    print "Adding %s to blacklist (posted %s)" % (
         i["verse"],
-        (now - i["last_updated"]) / (60 * 60 * 24))
+        (datetime.datetime.fromtimestamp(i["last_updated"])))
     BLACKLIST.add(i['verse'])
 
 # Read the XML verses file
@@ -48,7 +49,9 @@ with open('proverbs.xml') as fd:
 
 root = doc['bible']['b']['c']
 
-# Keep track of number of verses per chapter and the total number
+# Keep track of number of verses per chapter and the total number.
+# Could hardcode this (it's not like Proverbs is going to change)
+# but it's a small set of data, so easy enough to just compute it.
 
 chapters = {}
 verses = 0
@@ -59,18 +62,21 @@ for chapter in root:
 
 # Pick a verse to post, skip duplicates and blacklisted verses
 
-while True:
+for _ in xrange(0, verses):
     chapter_idx = random.randint(1, len(chapters))
     verse_idx = random.randint(1, len(root[chapter_idx-1]['v']))
     verse_key = "%s:%s" % (chapter_idx, verse_idx)
     if verse_key not in BLACKLIST:
         break
+else:
+    sys.stderr.write("did not find a non-duplicate verse?!\n")
+    sys.exit(1)
 
 verse = root[chapter_idx - 1]['v'][verse_idx - 1]['#text']
 
 # Post to twitter
 
-new_status = "%s (Proverbs %s:%s NIV)" % (verse, chapter_idx, verse_idx)
+new_status = "%s (Proverbs %s NIV)" % (verse, verse_key)
 print("status: %s" % new_status)
 
 twitter = twitter.Twitter(auth=twitter.OAuth(config.access_key,
@@ -83,7 +89,7 @@ results = twitter.statuses.update(status=new_status)
 
 table.update_item(
   Key={
-    "verse": "%s:%s" % (chapter_idx, verse_idx),
+    "verse": verse_key,
   },
   UpdateExpression='SET last_updated = :val1',
   ExpressionAttributeValues={
