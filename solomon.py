@@ -2,6 +2,7 @@
 
 import calendar
 import random
+import os
 import sys
 import time
 
@@ -72,6 +73,9 @@ verse = root[chapter_idx - 1]['v'][verse_idx - 1]['#text']
 
 new_status = "%s (Proverbs %s:%s NIV)" % (verse, chapter_idx, verse_idx)
 print("status: %s" % new_status)
+
+if 'DEBUG' in os.environ:
+    sys.exit(0)
 
 twitter = twitter.Twitter(auth=twitter.OAuth(config.access_key,
                                              config.access_secret,
