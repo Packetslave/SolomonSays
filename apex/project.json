@@ -1,0 +1,9 @@
+{
+  "name": "SolomonSays",
+  "description": "SolomonSays twitter bot",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::212952756451:role/SolomonSays_lambda_function",
+  "environment": {},
+  "runtime": "python2.7"
+}
